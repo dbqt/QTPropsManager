@@ -275,12 +275,15 @@ namespace QTAssets
         /// </summary>
         public static void AddVRCParameter(VRCAvatarDescriptor avatarDescriptor, string parameter, bool defaultValue = false, bool saved = false)
         {
-            var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
-            if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+            if (avatarDescriptor.expressionParameters != null)
             {
-                vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Bool, defaultValue = defaultValue ? 1 : 0, saved = saved });
+                var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
+                if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+                {
+                    vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Bool, defaultValue = defaultValue ? 1 : 0, saved = saved });
+                }
+                avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
             }
-            avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
         }
 
         /// <summary>
@@ -288,12 +291,15 @@ namespace QTAssets
         /// </summary>
         public static void AddVRCParameter(VRCAvatarDescriptor avatarDescriptor, string parameter, int defaultValue, bool saved)
         {
-            var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
-            if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+            if (avatarDescriptor.expressionParameters != null)
             {
-                vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Int, defaultValue = defaultValue, saved = saved });
+                var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
+                if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+                {
+                    vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Int, defaultValue = defaultValue, saved = saved });
+                }
+                avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
             }
-            avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
         }
 
         /// <summary>
@@ -301,12 +307,15 @@ namespace QTAssets
         /// </summary>
         public static void AddVRCParameter(VRCAvatarDescriptor avatarDescriptor, string parameter, float defaultValue, bool saved)
         {
-            var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
-            if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+            if (avatarDescriptor.expressionParameters != null)
             {
-                vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Int, defaultValue = defaultValue, saved = saved });
+                var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
+                if (avatarDescriptor.expressionParameters.FindParameter(parameter) == null)
+                {
+                    vrcParamList.Add(new VRCExpressionParameters.Parameter() { name = parameter, valueType = VRCExpressionParameters.ValueType.Int, defaultValue = defaultValue, saved = saved });
+                }
+                avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
             }
-            avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
         }
 
         /// <summary>
@@ -314,13 +323,16 @@ namespace QTAssets
         /// </summary>
         public static void RemoveVRCParameter(VRCAvatarDescriptor avatarDescriptor, string parameter)
         {
-            var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
-            var param = avatarDescriptor.expressionParameters.FindParameter(parameter);
-            if (param != null)
+            if (avatarDescriptor.expressionParameters != null)
             {
-                vrcParamList.Remove(param);
+                var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
+                var param = avatarDescriptor.expressionParameters.FindParameter(parameter);
+                if (param != null)
+                {
+                    vrcParamList.Remove(param);
+                }
+                avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
             }
-            avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
         }
 
         /// <summary>
@@ -328,15 +340,17 @@ namespace QTAssets
         /// </summary>
         public static void RemoveVRCParametersByName(VRCAvatarDescriptor avatarDescriptor, string name)
         {
-            var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
-
-            var paramsToDelete = vrcParamList.Where(p => p.name.Contains(name)).ToList();
-
-            foreach (var param in paramsToDelete)
+            if (avatarDescriptor.expressionParameters != null)
             {
-                vrcParamList.Remove(param);
+                var vrcParamList = new List<VRCExpressionParameters.Parameter>(avatarDescriptor.expressionParameters.parameters);
+                var paramsToDelete = vrcParamList.Where(p => p.name.Contains(name)).ToList();
+
+                foreach (var param in paramsToDelete)
+                {
+                    vrcParamList.Remove(param);
+                }
+                avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
             }
-            avatarDescriptor.expressionParameters.parameters = vrcParamList.ToArray();
         }
 
         /// <summary>

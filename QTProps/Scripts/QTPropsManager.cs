@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 using AnimatorAsCode.V0;
+using Boo.Lang.Environments;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,6 +91,16 @@ namespace QTAssets
                 Data.SetupAssetContainer(Avatar);
                 LoadFromAsset();
             }
+
+            // Make sure the asset has a unique key for the animator management
+            if (Avatar != null)
+            {
+                if (string.IsNullOrEmpty(AssetKey?.Trim()))
+                {
+                    AssetKey = GUID.Generate().ToString();
+                    SaveToAsset();
+                }
+            }
         }
 
         /// <summary>
@@ -137,7 +148,6 @@ namespace QTAssets
         public bool Saved;
         public GameObject PropObject;
         public Transform BoneToAttachPropTo;
-        public string AssetKey;
         public Texture2D Icon;
 
         public bool IsValid() =>
@@ -360,13 +370,6 @@ namespace QTAssets
         {
             var my = (QTPropsManager)target;
 
-            // Make sure the asset has a unique key for the animator management
-            if (string.IsNullOrEmpty(prop.AssetKey?.Trim()))
-            {
-                prop.AssetKey = GUID.Generate().ToString();
-                serializedObject.ApplyModifiedProperties();
-            }
-
             // Add prop to parent and hide original
             var newProp = Instantiate(prop.PropObject);
             newProp.name = prop.Name;
@@ -426,9 +429,9 @@ namespace QTAssets
             // Clean up animator layers and parameters
             var animController = QTHelpers.GetAnimatorController(my.Avatar, VRCAvatarDescriptor.AnimLayerType.FX);
 
-            QTHelpers.RemoveAnimatorLayersByName(animController, Prefix);
             if (animController != null)
             {
+                QTHelpers.RemoveAnimatorLayersByName(animController, Prefix);
                 QTHelpers.RemoveParametersFromAnimatorByName(animController, $"{Prefix}");
             }
 
@@ -437,14 +440,17 @@ namespace QTAssets
 
             // Clean up VRC menus
             var menu = my.menuLocation ?? my.Avatar.expressionsMenu;
-            var propMenu = menu.controls.FirstOrDefault(control => control.name.Equals("QTProps"));
-            if (propMenu != null)
+            if (menu != null)
             {
-                propMenu.subMenu.controls.Clear();
-                menu.controls.Remove(propMenu);
-            }
+                var propMenu = menu.controls.FirstOrDefault(control => control.name.Equals("QTProps"));
+                if (propMenu != null)
+                {
+                    propMenu.subMenu.controls.Clear();
+                    menu.controls.Remove(propMenu);
+                }
 
-            QTHelpers.DeleteVRCMenuAssets(my.Avatar, "QTPropsMenu");
+                QTHelpers.DeleteVRCMenuAssets(my.Avatar, "QTPropsMenu");
+            }
 
             // Clean up asset container for animator as code
             QTHelpers.DeleteAssetContainer(my.Avatar);
