@@ -1,6 +1,14 @@
 # QT Props Manager
 A tool to quickly manage simple prop toggles for VRChat Avatar 3.0.
 
+## Features
+- Quickly add simple props to your VRC Avatar 3.0
+- Automatically generates only one layer in the FX animator using blend trees
+- Automatically generates VRC menu(s) - it adds a paging system if there are too many props
+- Automatically generates VRC parameters (1 bool per prop)
+- Uses no constraints of any kinds
+- Quickly remove all the props that were added with this asset and cleans up animator, VRC menus, and VRC parameters
+
 ## Installation
 1. Download and add [Animator-As-Code](https://github.com/hai-vr/av3-animator-as-code#install) to your Unity project first.
 2. Download and install the latest version of the unity package for QTPropsManager from the [Releases](https://github.com/dbqt/QTPropsManager/releases).
@@ -44,6 +52,10 @@ This asset requires that you install [Animator-As-Code](https://github.com/hai-v
 
 ## How does it actually work behind the scenes?
 This asset helps with the setup of props by automatically attaching the game objects to the bones specified, generating all the blendtrees for the toggle animations, generating VRC menus and VRC parameters, and managing the clean up to revert all of the installation if that's something you want.
+
+## Special thanks
+Thank you to [Hai](https://github.com/hai-vr) for creating [Animator-As-Code](https://github.com/hai-vr/av3-animator-as-code#install)
+Thank you to the contributors of [this article for writing about using blend trees for toggles](https://notes.sleightly.dev/dbt-combining/)
 
 ## License
 This is MIT license.
