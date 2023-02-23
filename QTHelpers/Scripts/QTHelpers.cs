@@ -78,7 +78,7 @@ namespace QTAssets
         public static AnimatorController GetAnimatorController(VRCAvatarDescriptor avatarDescriptor, VRCAvatarDescriptor.AnimLayerType animationLayerType)
         {
             return avatarDescriptor.baseAnimationLayers.FirstOrDefault(layer => layer.type == animationLayerType).animatorController as AnimatorController;
-        }
+        } 
 
         /// <summary>
         /// Finds and deletes all layers that start with the specified name from the animator controller.
@@ -94,7 +94,7 @@ namespace QTAssets
         /// </summary>
         public static void RemoveParametersFromAnimatorByName(AnimatorController controller, string name)
         {
-            for (int i = 0; i < controller.parameters.Length; i++)
+            for (int i = controller.parameters.Length - 1; i >= 0; i--)
             {
                 if (controller.parameters[i].name.StartsWith(name))
                 {

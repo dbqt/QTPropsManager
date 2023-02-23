@@ -11,8 +11,8 @@ namespace QTAssets
     {
         public AnimatorController AssetContainer;
         public VRCExpressionsMenu menuLocation;
-        public bool UseWriteDefault;
         public List<QTProp> Props;
+        public string AssetKey;
 
         public void SetupAssetContainer(VRCAvatarDescriptor avatar)
         {

@@ -8,6 +8,7 @@ A tool to quickly manage simple prop toggles for VRChat Avatar 3.0.
 
 ## Usage
 
+- IMPORTANT: It's recommended that you make a backup of your avatar in case anything goes wrong, this asset modifies directly your avatar!
 - Before anything else you need to add the prefab from QTAssets/QTProps/QTPropsManager.prefab to your scene
 - Add your avatar's VRCAvatarDescriptor to the manager.
 - Customize the QT Props Manager options as needed, the table below describes each property.
@@ -18,7 +19,6 @@ A tool to quickly manage simple prop toggles for VRChat Avatar 3.0.
 | --- | --- | --- |
 | Avatar | Yes | The VRC Avatar Descriptor of the avatar you want to add props to |
 | VRC Submenu parent | No | The menu to which QTProps submenu will be added to, if not specified, it will try to add to the default menu |
-| Use Write Default | - | Whether the animator should use Write Default or not |
 
 - For each prop you want to add, click on the + button.
 - Fill in the properties for that prop following the table below.
@@ -42,6 +42,8 @@ A tool to quickly manage simple prop toggles for VRChat Avatar 3.0.
 ## Dependencies
 This asset requires that you install [Animator-As-Code](https://github.com/hai-vr/av3-animator-as-code#install)
 
+## How does it actually work behind the scenes?
+This asset helps with the setup of props by automatically attaching the game objects to the bones specified, generating all the blendtrees for the toggle animations, generating VRC menus and VRC parameters, and managing the clean up to revert all of the installation if that's something you want.
 
 ## License
 This is MIT license.

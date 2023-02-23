@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.AnimatedValues;
+using UnityEditor.Animations;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -22,8 +23,8 @@ namespace QTAssets
         public AnimatorController AssetContainer;
         [Tooltip("(Optional) This will use the root menu if not assigned.")]
         public VRCExpressionsMenu menuLocation;
-        public bool UseWriteDefault;
         public List<QTProp> Props;
+        public string AssetKey;
 
         private VRCAvatarDescriptor previousAvatar = null;
 
@@ -100,8 +101,8 @@ namespace QTAssets
             {
                 Data.AssetContainer = AssetContainer;
                 Data.menuLocation = menuLocation;
-                Data.UseWriteDefault = UseWriteDefault;
                 Data.Props = Props;
+                Data.AssetKey = AssetKey;
 
                 return true;
             }
@@ -118,8 +119,8 @@ namespace QTAssets
             {
                 AssetContainer = Data.AssetContainer;
                 menuLocation = Data.menuLocation;
-                UseWriteDefault = Data.UseWriteDefault;
                 Props = Data.Props;
+                AssetKey = Data.AssetKey;
 
                 return true;
             }
@@ -153,11 +154,8 @@ namespace QTAssets
 
         private SerializedProperty serializedAvatar;
         private SerializedProperty serializedMenu;
-        private SerializedProperty serializedWD;
 
         AnimBool showPropsFields;
-
-        private int installingProgress = 0;
 
         private void OnEnable()
         {
@@ -167,7 +165,6 @@ namespace QTAssets
             serializedAvatar = serializedObject.FindProperty("Avatar");
             var serializedList = serializedObject.FindProperty("Props");
             serializedMenu = serializedObject.FindProperty("menuLocation");
-            serializedWD = serializedObject.FindProperty("UseWriteDefault");
 
             // Visibility toggle for the list of props
             showPropsFields = new AnimBool(true);
@@ -269,7 +266,6 @@ namespace QTAssets
 
             // Basic properties
             EditorGUILayout.PropertyField(serializedMenu, new GUIContent("VRC Submenu parent (optional)"));
-            EditorGUILayout.PropertyField(serializedWD);
 
             GUILayout.Space(20);
             EditorGUI.indentLevel++;
@@ -283,32 +279,6 @@ namespace QTAssets
             EditorGUILayout.EndFadeGroup();
             EditorGUI.indentLevel--;
             GUILayout.Space(20);
-
-            // If last step of installing
-            if (installingProgress == 1)
-            {
-                var container = my.Avatar.transform.GetChildByName("QTProps").gameObject;
-
-                // Toggle all the prop objects to the state they are supposed to be in by default
-                foreach (var prop in container.transform.GetChildren())
-                {
-                    bool defaultState = my.Props.FirstOrDefault(p => p.Name.Equals(prop.gameObject.name))?.DefaultState ?? false;
-                    prop.gameObject.SetActive(defaultState);
-                }
-
-                // Clear progress bar and show dialog
-                installingProgress--;
-                EditorUtility.ClearProgressBar();
-                EditorUtility.DisplayDialog("Done", "Installation completed!", "Ok");
-            }
-
-            // HAX: Delaying installing to give time to the editor to setup the constraint
-            if (installingProgress > 1)
-            {
-                EditorUtility.DisplayProgressBar("Installing QTProps", "Installing...", (60f - installingProgress) / 60f);
-                installingProgress--;
-                Repaint();
-            }
 
             // Install
             if (GUILayout.Button("Install / Update"))
@@ -350,30 +320,30 @@ namespace QTAssets
                 my.Data.SetupAssetContainer(my.Avatar);
                 my.LoadFromAsset();
 
-                // Get QTProps object
-                GameObject container;
-                try
-                {
-                    container = my.Avatar.transform.GetChildByName("QTProps").gameObject;
-                }
-                catch
-                {
-                    // Doesn't exist, and that's okay, create it
-                    container = new GameObject();
-                    container.name = "QTProps";
-                    container.transform.SetParent(my.Avatar.transform);
-                }
+                // Use write default because we're using blendtrees
+                var aac = QTHelpers.AnimatorAsCode($"{Prefix}Toggles", my.Avatar, my.AssetContainer, my.AssetKey, true);
+                var fx = aac.CreateMainFxLayer();
+                var mainState = fx.NewState("QTProps");
 
-                // Install!
+                // Create blendtree with blend parameter that will always be 0
+                var param = fx.FloatParameter($"{Prefix}Blend");
+                var blendtree = new UnityEditor.Animations.BlendTree();
+                blendtree.name = "QTProps Blendtree";
+                blendtree.blendType = BlendTreeType.Simple1D;
+                blendtree.blendParameter = param.Name;
+                blendtree.useAutomaticThresholds = false;
+
+                // Install the props and setup animation
                 foreach (var prop in my.Props)
                 {
-                    InstallProp(prop, container);
+                    InstallProp(prop, aac, fx, blendtree);
                 }
+
+                mainState.WithAnimation(blendtree);
 
                 GenerateVRCMenus();
 
-                // Start progress bar with delay to let the constraint setup
-                installingProgress = 60;
+                EditorUtility.DisplayDialog("Done", "Installation completed!", "Ok");
             }
 
             if (GUILayout.Button("Uninstall"))
@@ -386,7 +356,7 @@ namespace QTAssets
             my.SaveToAsset();
         }
 
-        private void InstallProp(QTProp prop, GameObject parent)
+        private void InstallProp(QTProp prop, AacFlBase aac, AacFlLayer fx, UnityEditor.Animations.BlendTree blendtree)
         {
             var my = (QTPropsManager)target;
 
@@ -397,14 +367,11 @@ namespace QTAssets
                 serializedObject.ApplyModifiedProperties();
             }
 
-            var aac = QTHelpers.AnimatorAsCode($"{Prefix}{prop.Name}", my.Avatar, my.AssetContainer, prop.AssetKey, my.UseWriteDefault);
-            var fx = aac.CreateMainFxLayer();
-
             // Add prop to parent and hide original
             var newProp = Instantiate(prop.PropObject);
             newProp.name = prop.Name;
-            newProp.transform.SetParent(parent.transform);
-            newProp.SetActive(true);
+            newProp.transform.SetParent(prop.BoneToAttachPropTo, true);
+            newProp.SetActive(prop.DefaultState);
 
             // Hide original if it was in the scene
             if (prop.PropObject.activeInHierarchy)
@@ -412,35 +379,17 @@ namespace QTAssets
                 prop.PropObject.SetActive(false);
             }
 
-            // Setup parent constraint to bone
-            var constraintSource = new ConstraintSource();
-            constraintSource.sourceTransform = prop.BoneToAttachPropTo;
-            constraintSource.weight = 1;
+            // Setup blendtree to toggle prop
+            var param = fx.FloatParameter($"{Prefix}{prop.Name}_Toggle");
+            var propBlendtree = aac.NewBlendTreeAsRaw();
+            propBlendtree.name = prop.Name;
+            propBlendtree.blendParameter = param.Name;
+            propBlendtree.blendType = BlendTreeType.Simple1D;
+            propBlendtree.AddChild(aac.NewClip().Toggling(newProp, false).Clip, 0f);
+            propBlendtree.AddChild(aac.NewClip().Toggling(newProp, true).Clip, 1f);
 
-            var parentConstraint = newProp.AddComponent<ParentConstraint>();
-            parentConstraint.AddSource(constraintSource);
-            parentConstraint.constraintActive = true;
-            parentConstraint.weight = 1;
-
-            // Setup animations & transitions
-            var param = fx.BoolParameter($"{Prefix}{prop.Name}_Toggle");
-            AacFlState on;
-            AacFlState off;
-
-            // Change the order to set the default state
-            if (prop.DefaultState)
-            {
-                on = fx.NewState($"{prop.Name}_On").WithAnimation(aac.NewClip().Toggling(newProp, true));
-                off = fx.NewState($"{prop.Name}_Off").WithAnimation(aac.NewClip().Toggling(newProp, false));
-            }
-            else
-            {
-                off = fx.NewState($"{prop.Name}_Off").WithAnimation(aac.NewClip().Toggling(newProp, false));
-                on = fx.NewState($"{prop.Name}_On").WithAnimation(aac.NewClip().Toggling(newProp, true));
-            }
-
-            off.TransitionsTo(on).When(param.IsTrue());
-            on.TransitionsTo(off).When(param.IsFalse());
+            // Add prop blendtree to main blendtree
+            blendtree.AddChild(propBlendtree, 0f);
 
             // Add VRC parameters
             QTHelpers.AddVRCParameter(my.Avatar, $"{Prefix}{prop.Name}_Toggle", prop.DefaultState, prop.Saved);
@@ -449,18 +398,22 @@ namespace QTAssets
         private void UninstallProps()
         {
             var my = (QTPropsManager)target;
+
             // Clean up props game objects
-            try
+            foreach (var prop in my.Props)
             {
-                var prefab = my.Avatar.transform.GetChildByName("QTProps")?.gameObject;
-                if (prefab != null)
+                try
                 {
-                    DestroyImmediate(prefab);
+                    var propGameObject = prop.BoneToAttachPropTo.GetChildByName(prop.Name);
+                    if (propGameObject != null)
+                    {
+                        DestroyImmediate(propGameObject.gameObject);
+                    }
                 }
-            }
-            catch (KeyNotFoundException)
-            {
-                // Ignore, the prefab wasn't there, nothing to uninstall
+                catch (KeyNotFoundException)
+                {
+                    // Ignore, the prop wasn't there, nothing to delete
+                }
             }
 
             UninstallPropsAnimatorAndVRCAssets();
@@ -476,7 +429,6 @@ namespace QTAssets
             QTHelpers.RemoveAnimatorLayersByName(animController, Prefix);
             if (animController != null)
             {
-
                 QTHelpers.RemoveParametersFromAnimatorByName(animController, $"{Prefix}");
             }
 
